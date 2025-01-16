@@ -4,17 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetButton = document.getElementById('reset');
     let currentPlayer = 'X';
     let gameActive = true;
-    let boardState = Array(9).fill('');
+    let boardState = Array(16).fill('');
 
     const winningConditions = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6]
+        [0, 1, 2, 3],
+        [4, 5, 6, 7],
+        [8, 9, 10, 11],
+        [12, 13, 14, 15],
+        [0, 4, 8, 12],
+        [1, 5, 9, 13],
+        [2, 6, 10, 14],
+        [3, 7, 11, 15],
+        [0, 5, 10, 15],
+        [3, 6, 9, 12]
     ];
 
     board.addEventListener('click', (e) => {
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (cell.classList.contains('cell') && gameActive && boardState[index] === '') {
                 boardState[index] = currentPlayer;
+                playAudio(3);
                 cell.textContent = currentPlayer;
                 cell.style.transform = "scale(1.1)";
                 setTimeout(() => cell.style.transform = "scale(1)", 300);
@@ -42,13 +45,46 @@ document.addEventListener('DOMContentLoaded', () => {
         else statusText.innerText = "Thinking...";
     }
 
+    function highlightWinningCells(cells) {
+        cells.forEach((index) => {
+            const cell = getCellByIndex(index);
+            cell.classList.add('highlight'); // Add the animation class
+    
+            // Optional: Remove the class after the animation ends to reset
+            setTimeout(() => {
+                cell.classList.remove('highlight');
+            }, 600); // Match the duration of the CSS animation
+        });
+    }
+
+    function highlightDraw() {
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach((cell) => {
+            cell.classList.add('draw-highlight'); // Add draw animation class
+    
+            // Remove the class after the animation ends
+            setTimeout(() => {
+                cell.classList.remove('draw-highlight');
+            }, 1000); // Match the duration of the CSS animation (1 second)
+        });
+    }
+    
+    function playAudio(audioInd) {
+        let audios = ["winAudio", "drawAudio", "highAudio", "lowAudio"]
+        const audio = document.getElementById(audios[audioInd]);
+        audio.play().catch(error => {
+            console.error('Error playing audio:', error);
+        });
+    }
+
     function checkWinner(thePlayer) {
         let roundWon = false;
-
         for (let condition of winningConditions) {
-            const [a, b, c] = condition;
-            if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]) {
+            const [a, b, c, d] = condition;
+            if (boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c] && boardState[a] === boardState[d]) {
                 roundWon = true;
+                highlightWinningCells([a,b,c,d])
+                break; // Exit loop if a winner is found
             }
         }
         if (roundWon) {
@@ -56,37 +92,40 @@ document.addEventListener('DOMContentLoaded', () => {
             let playerScore = scores.playerScore;
             let computerScore = scores.computerScore;
             let tie = scores.tie;
-            console.log(getScore())
             if (currentPlayer === thePlayer) {
                 statusText.textContent = `Player wins!`;
                 updateScore(playerScore+1,computerScore,tie);
+                playAudio(0);
             } else { 
                 statusText.textContent = `Computer wins!`;
                 updateScore(playerScore,computerScore+1,tie);
+                playAudio(0);
             }
             gameActive = false;
             return 0;
         } else if (!boardState.includes('')) {
             statusText.textContent = `It's a draw!`;
+            highlightDraw();
             gameActive = false;
             const scores = getScore(); // Get scores object
             let playerScore = scores.playerScore;
             let computerScore = scores.computerScore;
             let tie = scores.tie;
             updateScore(playerScore,computerScore,tie+1);
+            playAudio(1)
             return 0;
         }
         return 1;
     }
 
     function resetGame() {
-        boardState = Array(9).fill('');
+        boardState = Array(16).fill('');
         gameActive = true;
         statusText.textContent = ``;
         document.querySelectorAll('.cell').forEach(cell => cell.textContent = '');
         if (currentPlayer === "X") {
             currentPlayer = "O";
-            engineMoveIndex = getRandomNumber(0,8)
+            engineMoveIndex = getRandomNumber(0,15)
             let cellE = getCellByIndex(engineMoveIndex)
             cellE.textContent = "X";
             boardState[engineMoveIndex] = "X";
@@ -103,38 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return nextMove(board,player);
     }
 
-    async function getNexatMove(board, player = 'O') {
-        const payload = {
-            board: board,
-            player: player
-        };
-
-        try {
-            const response = await fetch('http://127.0.0.1:5000/next_move', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-
-            const data = await response.json();
-            return data.move;
-        } catch (error) {
-            console.error('There was a problem with the fetch operation:', error);
-        }
-    }
-
 
 
     function getCellByIndex(index) {
         // Ensure the index is within the valid range
-        if (index < 0 || index > 8) {
-            console.error('Index out of bounds. Please provide an index between 0 and 8.');
+        if (index < 0 || index > 15) {
+            console.error('Index out of bounds. Please provide an index between 0 and 15.');
             return null;
         }
 
@@ -150,10 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (checkWinner(enginesMove)) {
                 updateStatus();
                 move = getNextMove(boardState, enginesMove)
-                let engineMoveIndex = move.move.row * 3 + move.move.column;
+                let engineMoveIndex = move.move.row * 4 + move.move.column;
                 let cellE = getCellByIndex(engineMoveIndex)
                 cellE.textContent = enginesMove;
                 boardState[engineMoveIndex] = enginesMove;
+                playAudio(2);
                 cellE.style.transform = "scale(1.1)";
                 setTimeout(() => cellE.style.transform = "scale(1)", 300);
                 updateStatus(1);
@@ -161,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                 
             }
-        }, getRandomNumber(700,1400));
+        }, getRandomNumber(200,400));
     }
     function getRandomNumber(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -190,29 +204,34 @@ function checkWinner(board) {
     // Check rows
     for (let row of board) {
         if (new Set(row).size === 1 && row[0] !== " ") {
-            return row[0];
+            return row[0]; // Return the winner (X or O)
         }
     }
 
     // Check columns
-    for (let col = 0; col < 3; col++) {
-        if (new Set([board[0][col], board[1][col], board[2][col]]).size === 1 && board[0][col] !== " ") {
-            return board[0][col];
+    for (let col = 0; col < 4; col++) {
+        if (new Set([board[0][col], board[1][col], board[2][col], board[3][col]]).size === 1 && board[0][col] !== " ") {
+            return board[0][col]; // Return the winner
         }
     }
 
     // Check diagonals
-    if (new Set([board[0][0], board[1][1], board[2][2]]).size === 1 && board[0][0] !== " ") {
-        return board[0][0];
+    if (new Set([board[0][0], board[1][1], board[2][2], board[3][3]]).size === 1 && board[0][0] !== " ") {
+        return board[0][0]; // Return the winner
     }
-    if (new Set([board[0][2], board[1][1], board[2][0]]).size === 1 && board[0][2] !== " ") {
-        return board[0][2];
+    if (new Set([board[0][3], board[1][2], board[2][1], board[3][0]]).size === 1 && board[0][3] !== " ") {
+        return board[0][3]; // Return the winner
     }
 
-    return null;
+    return null; // No winner yet
 }
 
 function minimax(board, depth, isMaximizing) {
+
+    // Limit the depth
+    if (depth > 3) {
+        return 0;  // Arbitrary depth limit; adjust as needed
+    }
     const winner = checkWinner(board);
     if (winner === "X") {
         return -10 + depth;  // X wins
@@ -223,15 +242,16 @@ function minimax(board, depth, isMaximizing) {
     if (board.flat().every(cell => cell !== " ")) {
         return 0;  // Draw
     }
+    
 
     if (isMaximizing) {
         let bestScore = Infinity; // O tries to lose
-        for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
                 if (board[i][j] === " ") {
-                    board[i][j] = "O";  // O's move
-                    const score = minimax(board, depth + 1, false);
-                    board[i][j] = " ";  // Undo move
+                    const newBoard = board.map(row => row.slice()); // Create a copy
+                    newBoard[i][j] = "O";  // O's move
+                    const score = minimax(newBoard, depth + 1, false);
                     bestScore = Math.min(score, bestScore);
                 }
             }
@@ -239,12 +259,12 @@ function minimax(board, depth, isMaximizing) {
         return bestScore;
     } else {
         let bestScore = -Infinity; // X tries to win
-        for (let i = 0; i < 3; i++) {
-            for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
                 if (board[i][j] === " ") {
-                    board[i][j] = "X";  // X's move
-                    const score = minimax(board, depth + 1, true);
-                    board[i][j] = " ";  // Undo move
+                    const newBoard = board.map(row => row.slice()); // Create a copy
+                    newBoard[i][j] = "X";  // X's move
+                    const score = minimax(newBoard, depth + 1, true);
                     bestScore = Math.max(score, bestScore);
                 }
             }
@@ -258,8 +278,8 @@ function findBestMove(board, player) {
     let bestScore = isMaximizing ? Infinity : -Infinity;
     let move = [-1, -1];
 
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
             if (board[i][j] === " ") {
                 board[i][j] = player;  // Current player's move
                 const score = minimax(board, 0, !isMaximizing);
@@ -274,22 +294,21 @@ function findBestMove(board, player) {
     return move;
 }
 
-function nextMove(databoard,dataplayer="O") {
-    const board = [[], [], []];
+function nextMove(databoard, dataplayer = "O") {
+    const board = [[], [], [], []]; // Fixed initialization
     let j = 0;
 
     for (let cell of databoard) {
-        if (board[j].length > 2) {
+        if (board[j].length >= 4) { // Corrected condition
             j++;
         }
         board[j].push(cell === "" ? " " : cell);
     }
 
-    const player = dataplayer || "O";  // Default to 'O' if not specified
+    const player = dataplayer; // Default to 'O' if not specified
     const bestMove = findBestMove(board, player);
     return { move: { row: bestMove[0], column: bestMove[1] } };
 }
-
 
 
 

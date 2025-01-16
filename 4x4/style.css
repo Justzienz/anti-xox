@@ -22,8 +22,8 @@ h1 {
 
 .board {
     display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-template-rows: repeat(3, 100px);
+    grid-template-columns: repeat(4, 100px);
+    grid-template-rows: repeat(4, 100px);
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -134,3 +134,59 @@ h1 {
     background-color: rgba(156, 156, 156, 0.466);
   }
   
+
+
+
+
+
+
+
+  .highlight {
+    animation: highlight-animation 0.6s ease forwards;
+}
+
+@keyframes highlight-animation {
+    0% {
+        transform: scale(1);
+        background-color: #1e1e1e; /* Base color */
+        box-shadow: none;
+    }
+    50% {
+        transform: scale(1.1);
+        background-color: #61dafb; /* Highlight color */
+        box-shadow: 0 0 15px rgba(97, 218, 251, 0.8); /* Glow effect */
+    }
+    100% {
+        transform: scale(1);
+        background-color: #1e1e1e; /* Reset to base color */
+        box-shadow: none;
+    }
+}
+
+
+.draw-highlight {
+    animation: draw-animation 1s ease forwards;
+}
+
+@keyframes draw-animation {
+    0% {
+        transform: scale(1);
+        background-color: #1e1e1e; /* Base color */
+    }
+    25% {
+        transform: scale(1.05);
+        background-color: #61dafb; /* Draw highlight color */
+    }
+    50% {
+        transform: scale(1);
+        background-color: #61dafb; /* Maintain draw highlight color */
+    }
+    75% {
+        transform: scale(1.05);
+        background-color: #61dafb; /* Maintain draw highlight color */
+    }
+    100% {
+        transform: scale(1);
+        background-color: #1e1e1e; /* Reset to base color */
+    }
+}
